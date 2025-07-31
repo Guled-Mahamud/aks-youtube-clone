@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: youtube-clone
+  namespace: argocd
+spec:
+  destination:
+    namespace: youtube
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    repoURL: https://github.com/Guled-Mahamud/aks-youtube-clone
+    targetRevision: HEAD
+    path: k8s-manifests/youtube-app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
