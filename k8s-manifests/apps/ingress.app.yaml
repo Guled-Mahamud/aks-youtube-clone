@@ -19,5 +19,8 @@ spec:
             annotations:
               service.beta.kubernetes.io/azure-load-balancer-resource-group: YOUR_NODE_RG
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
-      - CreateNamespace=true
+     - CreateNamespace=true
