@@ -10,8 +10,24 @@ spec:
     targetRevision: HEAD
     path: k8s-manifests/charts/youtube-clone
     helm:
-      valueFiles:
-        - ../../helm-values/youtube-clone-values.yaml
+      values: |
+        image:
+          repository: youtubeclone.azurecr.io/youtube-clone
+          tag: v1
+        ingress:
+          enabled: true
+          className: nginx
+          annotations:
+            cert-manager.io/cluster-issuer: "letsencrypt-prod"
+          hosts:
+            - host: youtube.guled.co.uk
+              paths:
+                - path: /
+                  pathType: Prefix
+          tls:
+            - hosts:
+                - youtube.guled.co.uk
+              secretName: youtube-tls
   destination:
     server: https://kubernetes.default.svc
     namespace: youtube
