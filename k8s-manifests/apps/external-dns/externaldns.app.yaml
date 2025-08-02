@@ -6,13 +6,12 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: https://kubernetes-sigs.github.io/external-dns/
-    path: k8s-manifests/apps/external-dns
+    repoURL: https://kubernetes-sigs.github.io/external-dns
     chart: external-dns
     targetRevision: 1.14.4
     helm:
       valueFiles:
-        - ./apps/external-dns/values.yaml
+        - k8s-manifests/apps/external-dns/values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: externaldns
@@ -22,3 +21,4 @@ spec:
       selfHeal: true
     syncOptions:
       - CreateNamespace=true
+
