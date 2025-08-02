@@ -11,9 +11,6 @@ server:
           - argocd.guled.co.uk
         secretName: argocd-tls
   service:
-    port: 443  
-    targetPort: 8080
-  extraArgs: []  
+    port: 443
+    targetPort: 8083 
 
-config:
-  url: https://argocd.guled.co.uk
