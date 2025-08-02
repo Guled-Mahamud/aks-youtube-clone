@@ -1,0 +1,16 @@
+provider: cloudflare
+cloudflare:
+  apiTokenSecretRef:
+    name: cloudflare-api-token-secret
+    key: api-token
+logLevel: debug
+policy: sync
+registry: txt
+txtOwnerId: default
+sources:
+  - ingress
+  - service
+  - crd
+serviceAccount:
+  create: true
+  name: external-dns
