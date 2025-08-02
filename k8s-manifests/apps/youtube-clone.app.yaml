@@ -8,7 +8,7 @@ spec:
   source:
     repoURL: https://github.com/Guled-Mahamud/aks-youtube-clone
     targetRevision: HEAD
-    path: k8s-manifests
+    path: k8s-manifests/charts/youtube-clone
     helm:
       valueFiles:
         - ../helm-values/youtube-clone-values.yaml
