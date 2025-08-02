@@ -1,0 +1,13 @@
+controller:
+  ingressClassResource:
+    name: nginx
+    enabled: true
+  service:
+    annotations:
+      service.beta.kubernetes.io/azure-load-balancer-health-probe-request-path: /healthz
+    loadBalancerIP: ""  
+  ingressClass: nginx
+  metrics:
+    enabled: true
+  nodeSelector: {}
+  tolerations: []

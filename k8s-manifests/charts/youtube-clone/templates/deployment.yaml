@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: youtube-clone
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: youtube-clone
+  template:
+    metadata:
+      labels:
+        app: youtube-clone
+    spec:
+      containers:
+        - name: youtube-clone
+          image: youtubeclone.azurecr.io/youtube-clone:v1
+          ports:
+            - containerPort: 80

@@ -1,0 +1,18 @@
+image:
+  repository: youtubeclone.azurecr.io/youtube-clone
+  tag: v1
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+  hosts:
+    - host: youtube.guled.co.uk
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - hosts:
+        - youtube.guled.co.uk
+      secretName: youtube-tls

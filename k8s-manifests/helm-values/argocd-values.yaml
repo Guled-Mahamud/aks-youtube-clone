@@ -1,0 +1,12 @@
+server:
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - argocd.guled.co.uk
+    tls:
+      - hosts:
+          - argocd.guled.co.uk
+        secretName: argocd-tls
