@@ -1,0 +1,17 @@
+provider: cloudflare
+
+cloudflare:
+  apiTokenSecretRef:
+    name: cloudflare-api-token-secret
+    key: api-token
+
+policy: sync
+registry: txt
+txtOwnerId: aks-youtube-clone
+
+domainFilters:
+  - guled.co.uk
+
+interval: 1m
+sources:
+  - ingress
