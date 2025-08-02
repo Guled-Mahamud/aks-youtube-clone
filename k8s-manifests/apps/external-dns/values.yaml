@@ -1,16 +1,18 @@
 provider: cloudflare
+
 cloudflare:
   apiTokenSecretRef:
     name: cloudflare-api-token-secret
     key: api-token
-logLevel: debug
-policy: sync
-registry: txt
-txtOwnerId: default
+  proxied: false
+
 sources:
   - ingress
-  - service
-  - crd
-serviceAccount:
-  create: true
-  name: external-dns
+
+domainFilters:
+  - guled.co.uk
+
+policy: upsert-only
+registry: txt
+txtOwnerId: youtube-aks
+logLevel: info
