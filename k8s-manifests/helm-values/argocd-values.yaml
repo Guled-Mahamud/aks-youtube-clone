@@ -12,5 +12,6 @@ server:
         secretName: argocd-tls
   service:
     port: 443
-    targetPort: 8083 
-
+    targetPort: 8080  
+  extraArgs:
+    - --insecure       
