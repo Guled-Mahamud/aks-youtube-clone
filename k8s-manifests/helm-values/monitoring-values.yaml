@@ -6,7 +6,6 @@ prometheus:
     evaluationInterval: 30s
     retention: 7d
     enableAdminAPI: true
-
     ingress:
       enabled: true
       ingressClassName: nginx
