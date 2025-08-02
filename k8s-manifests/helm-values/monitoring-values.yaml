@@ -1,12 +1,4 @@
 prometheus:
-  prometheusSpec:
-    serviceMonitorSelectorNilUsesHelmValues: false
-    podMonitorSelectorNilUsesHelmValues: false
-    scrapeInterval: 30s
-    evaluationInterval: 30s
-    retention: 7d
-    enableAdminAPI: true
-
   ingress:
     enabled: true
     ingressClassName: nginx
@@ -18,6 +10,14 @@ prometheus:
       - hosts:
           - prometheus.guled.co.uk
         secretName: prometheus-tls
+
+  prometheusSpec:
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    scrapeInterval: 30s
+    evaluationInterval: 30s
+    retention: 7d
+    enableAdminAPI: true
 
 
 grafana:
