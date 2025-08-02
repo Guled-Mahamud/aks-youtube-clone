@@ -10,11 +10,11 @@ server:
       - hosts:
           - argocd.guled.co.uk
         secretName: argocd-tls
-
- 
+  service:
+    port: 80
+    targetPort: 8080
   extraArgs:
     - --insecure
 
- 
-  config:
-    url: https://argocd.guled.co.uk
+config:
+  url: https://argocd.guled.co.uk
