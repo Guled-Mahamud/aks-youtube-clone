@@ -2,6 +2,21 @@ prometheus:
   prometheusSpec:
     serviceMonitorSelectorNilUsesHelmValues: false
     podMonitorSelectorNilUsesHelmValues: false
+    scrapeInterval: 30s
+    evaluationInterval: 30s
+    retention: 7d
+    enableAdminAPI: true
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    hosts:
+      - prometheus.guled.co.uk
+    tls:
+      - hosts:
+          - prometheus.guled.co.uk
+        secretName: prometheus-tls
 
 grafana:
   enabled: true
@@ -16,3 +31,9 @@ grafana:
       - hosts:
           - grafana.guled.co.uk
         secretName: grafana-tls
+
+kubeStateMetrics:
+  enabled: true
+
+nodeExporter:
+  enabled: true
