@@ -7,7 +7,7 @@ grafana:
   enabled: true
   ingress:
     enabled: true
-    ingressClassName: nginx
+    ClassName: nginx
     annotations:
       cert-manager.io/cluster-issuer: "letsencrypt-prod"
     hosts:
