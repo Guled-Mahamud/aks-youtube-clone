@@ -7,11 +7,11 @@ spec:
   project: default
   source:
     repoURL: https://kubernetes-sigs.github.io/external-dns/
-    targetRevision: 1.14.4
     chart: external-dns
+    targetRevision: 1.14.4
     helm:
       valueFiles:
-        - ../externaldns/values.yaml
+        - values.yaml
   destination:
     server: https://kubernetes.default.svc
     namespace: externaldns
