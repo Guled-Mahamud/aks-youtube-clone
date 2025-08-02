@@ -11,5 +11,10 @@ server:
           - argocd.guled.co.uk
         secretName: argocd-tls
 
+ 
+  extraArgs:
+    - --insecure
+
+ 
   config:
     url: https://argocd.guled.co.uk
