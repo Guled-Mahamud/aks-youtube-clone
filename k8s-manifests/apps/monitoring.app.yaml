@@ -10,8 +10,44 @@ spec:
     chart: kube-prometheus-stack
     targetRevision: 56.6.2
     helm:
-      valueFiles:
-        - ../values/monitoring-values.yaml
+      values: |
+        prometheus:
+          prometheusSpec:
+            serviceMonitorSelectorNilUsesHelmValues: false
+            podMonitorSelectorNilUsesHelmValues: false
+            scrapeInterval: 30s
+            evaluationInterval: 30s
+            retention: 7d
+            enableAdminAPI: true
+            ingress:
+              enabled: true
+              ingressClassName: nginx
+              annotations:
+                cert-manager.io/cluster-issuer: "letsencrypt-prod"
+              hosts:
+                - prometheus.guled.co.uk
+              tls:
+                - hosts:
+                    - prometheus.guled.co.uk
+                  secretName: prometheus-tls
+        grafana:
+          enabled: true
+          ingress:
+            enabled: true
+            ingressClassName: nginx
+            annotations:
+              kubernetes.io/ingress.class: nginx
+              cert-manager.io/cluster-issuer: "letsencrypt-prod"
+            hosts:
+              - grafana.guled.co.uk
+            tls:
+              - secretName: grafana-tls
+                hosts:
+                  - grafana.guled.co.uk
+        kubeStateMetrics:
+          enabled: true
+        nodeExporter:
+          enabled: true
   destination:
     server: https://kubernetes.default.svc
     namespace: monitoring
