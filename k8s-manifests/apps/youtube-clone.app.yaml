@@ -14,7 +14,7 @@ spec:
       values: |
         image:
           repository: youtubeclone.azurecr.io/youtube-clone
-          tag: v1
+          tag: v3
         ingress:
           enabled: true
           className: nginx
