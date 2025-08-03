@@ -1,6 +1,6 @@
 image:
   repository: youtubeclone.azurecr.io/youtube-clone
-  tag: v2
+  tag: v3
   pullPolicy: Always
 
 ingress:
