@@ -3,8 +3,7 @@ kind: Application
 metadata:
   name: youtube-clone
   namespace: argocd
-  annotations:
-    refreshTime: "2025-08-03T02:30:00Z"
+  
 spec:
   project: default
   source:
