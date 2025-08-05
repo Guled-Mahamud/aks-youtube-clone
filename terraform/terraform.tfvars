@@ -1,0 +1,9 @@
+location       = "UK West"
+resource_group = "youtube-aks-rg"
+vnet_name      = "youtube-vnet"
+aks_name       = "youtube-aks"
+acr_name       = "youtubeclone"
+node_count     = 2
+dns_prefix     = "youtube"
+env            = "prod"
+cloudflare_api_token = "jwIKa24pduySoGH4APFChFdsWoRlB3vITVp8D31a"
