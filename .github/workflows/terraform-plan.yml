@@ -1,0 +1,59 @@
+name: Terraform Plan & Security Checks
+
+on:
+  push:
+    branches: [ "main" ]
+    paths: [ 'terraform/**' ]
+  pull_request:
+    branches: [ "main" ]
+    paths: [ 'terraform/**' ]
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  ARM_CLIENT_ID:       ${{ secrets.ARM_CLIENT_ID }}
+  ARM_CLIENT_SECRET:   ${{ secrets.ARM_CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID:       ${{ secrets.ARM_TENANT_ID }}
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.7.0
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Validate
+        run: terraform validate
+
+      - name: Terraform Plan
+        run: terraform plan -no-color
+
+      - name: Install TFLint
+        run: |
+          curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+          sudo mv tflint /usr/local/bin/
+          tflint --init
+
+      - name: Run TFLint
+        run: tflint --format compact
+        continue-on-error: true
+
+      - name: Checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          output_format: cli
+        continue-on-error: true
