@@ -1,0 +1,38 @@
+
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# production
+/build
+
+# Sensitive input files
+*.tfvars
+*.tfvars.json
+terraform.tfvars
+
+# Lock info
+.terraform.tfstate.lock.info
+.terraform.lock.hcl
+-
+# CLI config
+.terraformrc
+terraform.rc
+
+# Terraform plan output 
+*.tfplan
+
+
+# Environments
+.env
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
