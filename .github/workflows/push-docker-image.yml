@@ -1,6 +1,7 @@
 name: Build, Scan, and Push Docker Image to ACR
 
 on:
+  workflow_dispatch:  
   push:
     branches:
       - main
