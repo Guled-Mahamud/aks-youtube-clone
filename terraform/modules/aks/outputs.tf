@@ -23,3 +23,5 @@ output "node_resource_group" {
   description = "The auto-created resource group for AKS nodes"
   value       = azurerm_kubernetes_cluster.aks.node_resource_group
 }
+
+
