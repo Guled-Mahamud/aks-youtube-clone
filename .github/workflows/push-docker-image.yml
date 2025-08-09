@@ -2,12 +2,12 @@ name: Build, Scan, and Push Docker Image to ACR
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - main
     paths:
-    - 'Dockerfile'
-    - 'app/**'
-    - 'package.json'
-    - 'package-lock.json'
+      - 'Dockerfile'
+      - '.dockerignore'
+      - 'app/**'
 
 permissions:
   id-token: write
@@ -20,6 +20,7 @@ env:
 jobs:
   build_and_push:
     runs-on: ubuntu-latest
+    environment: production
     steps:
       - name: Checkout
         uses: actions/checkout@v4

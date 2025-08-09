@@ -2,8 +2,10 @@ name: Terraform Apply Infrastructure
 
 on:
   push:
-    branches: [ "main" ]
-    paths: [ 'terraform/**' ]
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
 
 permissions:
   id-token: write
