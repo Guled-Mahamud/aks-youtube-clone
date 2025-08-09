@@ -9,3 +9,4 @@ output "kube_config" {
 output "node_rg" {
   value = module.aks.node_resource_group
 }
+
