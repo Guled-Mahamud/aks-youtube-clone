@@ -3,5 +3,5 @@ output "cert_manager_namespace" {
 }
 
 #output "cloudflare_secret_name" {
-  #value = kubernetes_secret.cloudflare_api_token.metadata[0].name
+#value = kubernetes_secret.cloudflare_api_token.metadata[0].name
 #}

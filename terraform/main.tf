@@ -30,7 +30,7 @@ module "aks" {
 }
 
 module "argocd" {
-  source = "./modules/argocd"
+  source    = "./modules/argocd"
   namespace = "argocd"
 
   depends_on = [
@@ -45,8 +45,8 @@ module "argocd" {
 
 
 module "ingress" {
-  source     = "./modules/ingress"
-  namespace  = "ingress-nginx"
+  source         = "./modules/ingress"
+  namespace      = "ingress-nginx"
   depends_on_aks = module.aks
 }
 
@@ -64,8 +64,8 @@ module "certmanager" {
 
 module "monitoring" {
   source = "./modules/monitoring"
-  
-  
+
+
   depends_on = [module.ingress]
 }
 

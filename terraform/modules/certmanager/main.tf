@@ -48,10 +48,10 @@ resource "helm_release" "cert_manager" {
 
   values = [
     file("${path.root}/../k8s-manifests/values/certmanager-values.yaml")
-    
+
   ]
 
-  
+
 
   depends_on = [
     kubernetes_namespace.cert_manager,

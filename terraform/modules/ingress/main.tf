@@ -12,7 +12,7 @@ resource "helm_release" "nginx_ingress" {
   namespace  = kubernetes_namespace.ingress.metadata[0].name
   version    = "4.10.0"
 
-   values = [
+  values = [
     file("${path.root}/../k8s-manifests/values/ingress-values.yaml")
   ]
 

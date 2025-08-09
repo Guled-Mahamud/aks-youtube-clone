@@ -31,9 +31,9 @@ resource "helm_release" "external_dns" {
   values = [
     templatefile("${path.module}/values/externaldns-values.yaml.tpl", {
       cloudflare_email = var.cloudflare_email
-      domain_filters    = var.domain_filters
-      secret_name       = var.secret_name
-      token_key         = var.token_key
+      domain_filters   = var.domain_filters
+      secret_name      = var.secret_name
+      token_key        = var.token_key
     })
   ]
 

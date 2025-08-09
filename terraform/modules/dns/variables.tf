@@ -51,5 +51,5 @@ variable "token_key" {
 variable "chart_version" {
   description = "Version of the external-dns Helm chart."
   type        = string
-  default     = "6.25.0" 
+  default     = "6.25.0"
 }
