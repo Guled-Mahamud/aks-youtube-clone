@@ -1,111 +1,59 @@
-name: Terraform Apply
+name: Terraform Apply Infrastructure
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
     paths:   [ 'terraform/**' ]
-  workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
 
+env:
+  TF_IN_AUTOMATION: "true"
+  ARM_CLIENT_ID:       ${{ secrets.ARM_CLIENT_ID }}
+  ARM_CLIENT_SECRET:   ${{ secrets.ARM_CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID:       ${{ secrets.ARM_TENANT_ID }}
+
 jobs:
   apply:
     runs-on: ubuntu-latest
+    environment: production
     defaults:
       run:
-        working-directory: ./terraform
-
-    env:
-      # ---- Remote backend (already created in Azure) ----
-      RESOURCE_GROUP_NAME:  ${{ secrets.RESOURCE_GROUP_NAME }}   # tfstate-rg
-      STORAGE_ACCOUNT_NAME: ${{ secrets.STORAGE_ACCOUNT_NAME }}  # your storage account
-      CONTAINER_NAME:       ${{ secrets.CONTAINER_NAME }}        # tfstate
-      TFSTATE_KEY:          ${{ secrets.TFSTATE_KEY }}           # aks.tfstate
-
-      # ---- AKS info ----
-      AKS_RG:   youtube-aks-rg
-      AKS_NAME: youtube-aks
-
-      # Used by kubectl / TF k8s & helm providers
-      KUBECONFIG: ~/.kube/config
+        working-directory: terraform
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Log in with SP fields (must exist as repo/env secrets)
-      - name: Azure Login (SP)
+      - name: Azure login (SP via JSON)
         uses: azure/login@v1
         with:
-          client-id:       ${{ secrets.ARM_CLIENT_ID }}
-          tenant-id:       ${{ secrets.ARM_TENANT_ID }}
-          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-
-      # Optional (ensures kubectl exists on the runner)
-      - name: Ensure kubectl
-        run: az aks install-cli
-
-      - name: Get AKS credentials (writes ~/.kube/config)
-        shell: bash
-        run: |
-          # retry a few times just in case the API server is still warming up
-          for i in {1..5}; do
-            if az aks get-credentials -g "$AKS_RG" -n "$AKS_NAME" --overwrite-existing; then
-              break
-            fi
-            echo "get-credentials failed, retrying ($i/5) ..."
-            sleep 10
-          done
-          kubectl config current-context || true
-          kubectl config view --minify || true
-
-      - name: Wait for Kubernetes API (up to ~10m)
-        shell: bash
-        run: |
-          for i in {1..120}; do
-            if kubectl get ns --request-timeout=5s >/dev/null 2>&1; then
-              echo "Kubernetes API reachable."
-              exit 0
-            fi
-            echo "Waiting for Kubernetes API... ($i/120)"
-            sleep 5
-          done
-          echo "Kubernetes API was not reachable in time."
-          kubectl cluster-info || true
-          exit 1
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
+        uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.7.0
 
-      - name: Terraform Init (remote backend)
-        run: |
-          terraform init -reconfigure -upgrade \
-            -backend-config="resource_group_name=${RESOURCE_GROUP_NAME}" \
-            -backend-config="storage_account_name=${STORAGE_ACCOUNT_NAME}" \
-            -backend-config="container_name=${CONTAINER_NAME}" \
-            -backend-config="key=${TFSTATE_KEY}"
+      - name: Cache Terraform providers
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.terraform.d/plugin-cache
+            terraform/.terraform
+          key: tf-${{ runner.os }}-${{ hashFiles('terraform/.terraform.lock.hcl') }}
+
+      - name: Terraform Init
+        env:
+          TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
+        run: terraform init -input=false
 
       - name: Terraform Validate
         run: terraform validate
-
-      # If you want Terraform to take over existing resources, uncomment the
-      # imports below and run the workflow once, then comment them again.
-      # - name: Import existing Azure resources (one-time)
-      #   run: |
-      #     terraform import module.aks.azurerm_kubernetes_cluster.aks \
-      #       "/subscriptions/${{ secrets.ARM_SUBSCRIPTION_ID }}/resourceGroups/youtube-aks-rg/providers/Microsoft.ContainerService/managedClusters/youtube-aks"
-      #     terraform import module.acr.azurerm_container_registry.acr \
-      #       "/subscriptions/${{ secrets.ARM_SUBSCRIPTION_ID }}/resourceGroups/youtube-aks-rg/providers/Microsoft.ContainerRegistry/registries/youtubeclone"
-      #     terraform import azurerm_resource_group.rg \
-      #       "/subscriptions/${{ secrets.ARM_SUBSCRIPTION_ID }}/resourceGroups/youtube-aks-rg"
-      #     terraform import module.network.azurerm_virtual_network.vnet \
-      #       "/subscriptions/${{ secrets.ARM_SUBSCRIPTION_ID }}/resourceGroups/youtube-aks-rg/providers/Microsoft.Network/virtualNetworks/youtube-vnet"
-      #     terraform import module.aks.azurerm_user_assigned_identity.uami \
-      #       "/subscriptions/${{ secrets.ARM_SUBSCRIPTION_ID }}/resourceGroups/youtube-aks-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/youtube-aks-uami"
 
       - name: Terraform Apply
         env:
@@ -113,6 +61,4 @@ jobs:
           TF_VAR_client_secret:   ${{ secrets.ARM_CLIENT_SECRET }}
           TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           TF_VAR_tenant_id:       ${{ secrets.ARM_TENANT_ID }}
-          # If your TF expects Cloudflare token as a variable, uncomment:
-          # TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: terraform apply -auto-approve
+        run: terraform apply -input=false -auto-approve
