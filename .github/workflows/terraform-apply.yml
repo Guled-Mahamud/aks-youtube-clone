@@ -1,96 +1,59 @@
-name: Terraform Apply Infrastructure
+name: Terraform Apply
 
 on:
-  workflow_dispatch:
   push:
     branches: [ main ]
-    paths: [ 'terraform/**' ]
+    paths:   [ 'terraform/**' ]
+  workflow_dispatch:
 
 permissions:
   id-token: write
   contents: read
 
-env:
-  TF_IN_AUTOMATION: "true"
-  ARM_CLIENT_ID:       ${{ secrets.ARM_CLIENT_ID }}
-  ARM_CLIENT_SECRET:   ${{ secrets.ARM_CLIENT_SECRET }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-  ARM_TENANT_ID:       ${{ secrets.ARM_TENANT_ID }}
-
 jobs:
   apply:
     runs-on: ubuntu-latest
-    environment: production
     defaults:
       run:
-        working-directory: terraform
+        working-directory: ./terraform
+
+    env:
+      # backend (you already created these in Azure)
+      RESOURCE_GROUP_NAME:  ${{ secrets.RESOURCE_GROUP_NAME }}   # tfstate-rg
+      STORAGE_ACCOUNT_NAME: ${{ secrets.STORAGE_ACCOUNT_NAME }}  # your stg name
+      CONTAINER_NAME:       ${{ secrets.CONTAINER_NAME }}        # tfstate
+      TFSTATE_KEY:          ${{ secrets.TFSTATE_KEY }}           # aks.tfstate
+
+      # AKS
+      AKS_RG: youtube-aks-rg
+      AKS_NAME: youtube-aks
+
+      # Kubeconfig path used by kubectl/TF k8s/helm providers
+      KUBECONFIG: ~/.kube/config
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Azure login (SP via JSON)
+      - name: Azure Login (SP)
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          client-id:       ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id:       ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
-      - name: Set AKS context (creates kubeconfig)
-        id: aks
-        uses: azure/aks-set-context@v4
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-          cluster-name: youtube-aks
-          resource-group: youtube-aks-rg
-
-      - name: Export kubeconfig path
-        run: echo "KUBECONFIG=${{ steps.aks.outputs.kubeconfig }}" >> $GITHUB_ENV
-
-      - name: Install kubectl
-        uses: azure/setup-kubectl@v4
-
-      # ---- NEW: temporarily allow the runner public IP if IP ranges are enabled
-      - name: Allow runner IP to AKS API if restricted
-        id: allowip
-        shell: bash
+      - name: Get AKS credentials (writes ~/.kube/config)
         run: |
-          set -euo pipefail
-          RUNNER_IP=$(curl -s https://api.ipify.org)
-          echo "runner_ip=$RUNNER_IP" >> $GITHUB_OUTPUT
-          echo "Runner public IP: $RUNNER_IP"
+          az aks get-credentials -g "$AKS_RG" -n "$AKS_NAME" --overwrite-existing
+          kubectl config current-context || true
+          kubectl config view --minify || true
 
-          # Check if API is IP-restricted
-          CURRENT=$(az aks show -g youtube-aks-rg -n youtube-aks \
-            --query 'apiServerAccessProfile.authorizedIpRanges' -o tsv || true)
-
-          if [ -n "$CURRENT" ] && [ "$CURRENT" != "None" ]; then
-            echo "AKS has authorizedIpRanges: $CURRENT"
-            # Append our IP if not present
-            if echo "$CURRENT" | grep -q "$RUNNER_IP/32"; then
-              echo "Runner IP already present."
-              echo "changed=false" >> $GITHUB_OUTPUT
-            else
-              NEW="$CURRENT,$RUNNER_IP/32"
-              az aks update -g youtube-aks-rg -n youtube-aks \
-                --api-server-authorized-ip-ranges "$NEW"
-              echo "Temporarily added $RUNNER_IP/32"
-              echo "changed=true" >> $GITHUB_OUTPUT
-              echo "prev_list=$CURRENT" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "AKS API not IP-restricted (no authorizedIpRanges)."
-            echo "changed=false" >> $GITHUB_OUTPUT
-          fi
-
-      # ---- Longer, more informative wait
       - name: Wait for Kubernetes API (up to ~10m)
         shell: bash
         run: |
-          set -euo pipefail
-          echo "Using kubeconfig: $KUBECONFIG"
-          kubectl version --client=true
           for i in {1..120}; do
-            if kubectl get --request-timeout=5s ns >/dev/null 2>&1; then
-              echo "Kubernetes API is reachable."
+            if kubectl get ns --request-timeout=5s >/dev/null 2>&1; then
+              echo "Kubernetes API reachable."
               exit 0
             fi
             echo "Waiting for Kubernetes API... ($i/120)"
@@ -101,50 +64,42 @@ jobs:
           exit 1
 
       - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.7.0
 
-      - name: Cache Terraform providers
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.terraform.d/plugin-cache
-            terraform/.terraform
-          key: tf-${{ runner.os }}-${{ hashFiles('terraform/.terraform.lock.hcl') }}
-
       - name: Terraform Init (remote backend)
-        env:
-          TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
         run: |
           terraform init -reconfigure -upgrade \
-            -backend-config="resource_group_name=${{ secrets.RESOURCE_GROUP_NAME }}" \
-            -backend-config="storage_account_name=${{ secrets.STORAGE_ACCOUNT_NAME }}" \
-            -backend-config="container_name=${{ secrets.CONTAINER_NAME }}" \
-            -backend-config="key=${{ secrets.TFSTATE_KEY }}" \
-            -input=false
+            -backend-config="resource_group_name=${RESOURCE_GROUP_NAME}" \
+            -backend-config="storage_account_name=${STORAGE_ACCOUNT_NAME}" \
+            -backend-config="container_name=${CONTAINER_NAME}" \
+            -backend-config="key=${TFSTATE_KEY}"
 
       - name: Terraform Validate
         run: terraform validate
 
-      # (keep your import step here if you still need it)
+      # If you still have pre-existing Azure resources you want TF to manage,
+      # run imports here (uncomment & adjust):
+      # - name: Import existing Azure resources (optional)
+      #   run: |
+      #     terraform import module.aks.azurerm_kubernetes_cluster.aks \
+      #       "/subscriptions/${{ secrets.ARM_SUBSCRIPTION_ID }}/resourceGroups/youtube-aks-rg/providers/Microsoft.ContainerService/managedClusters/youtube-aks"
+      #     terraform import module.acr.azurerm_container_registry.acr \
+      #       "/subscriptions/${{ secrets.ARM_SUBSCRIPTION_ID }}/resourceGroups/youtube-aks-rg/providers/Microsoft.ContainerRegistry/registries/youtubeclone"
+      #     terraform import azurerm_resource_group.rg \
+      #       "/subscriptions/${{ secrets.ARM_SUBSCRIPTION_ID }}/resourceGroups/youtube-aks-rg"
+      #     terraform import module.network.azurerm_virtual_network.vnet \
+      #       "/subscriptions/${{ secrets.ARM_SUBSCRIPTION_ID }}/resourceGroups/youtube-aks-rg/providers/Microsoft.Network/virtualNetworks/youtube-vnet"
+      #     terraform import module.aks.azurerm_user_assigned_identity.uami \
+      #       "/subscriptions/${{ secrets.ARM_SUBSCRIPTION_ID }}/resourceGroups/youtube-aks-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/youtube-aks-uami"
 
       - name: Terraform Apply
         env:
-          KUBECONFIG: ${{ env.KUBECONFIG }}
           TF_VAR_client_id:       ${{ secrets.ARM_CLIENT_ID }}
           TF_VAR_client_secret:   ${{ secrets.ARM_CLIENT_SECRET }}
           TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           TF_VAR_tenant_id:       ${{ secrets.ARM_TENANT_ID }}
-        run: terraform apply -input=false -auto-approve
-
-      # ---- Cleanup: remove runner IP from allow-list if we added it
-      - name: Remove runner IP from AKS API allow-list
-        if: always() && steps.allowip.outputs.changed == 'true'
-        shell: bash
-        run: |
-          set -euo pipefail
-          PREV="${{ steps.allowip.outputs.prev_list }}"
-          echo "Restoring original authorizedIpRanges: $PREV"
-          az aks update -g youtube-aks-rg -n youtube-aks \
-            --api-server-authorized-ip-ranges "$PREV"
+          # If your TF expects Cloudflare token as variable:
+          # TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: terraform apply -auto-approve
