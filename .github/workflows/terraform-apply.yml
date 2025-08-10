@@ -18,23 +18,24 @@ jobs:
         working-directory: ./terraform
 
     env:
-      # backend (you already created these in Azure)
+      # ---- Remote backend (already created in Azure) ----
       RESOURCE_GROUP_NAME:  ${{ secrets.RESOURCE_GROUP_NAME }}   # tfstate-rg
-      STORAGE_ACCOUNT_NAME: ${{ secrets.STORAGE_ACCOUNT_NAME }}  # your stg name
+      STORAGE_ACCOUNT_NAME: ${{ secrets.STORAGE_ACCOUNT_NAME }}  # your storage account
       CONTAINER_NAME:       ${{ secrets.CONTAINER_NAME }}        # tfstate
       TFSTATE_KEY:          ${{ secrets.TFSTATE_KEY }}           # aks.tfstate
 
-      # AKS
-      AKS_RG: youtube-aks-rg
+      # ---- AKS info ----
+      AKS_RG:   youtube-aks-rg
       AKS_NAME: youtube-aks
 
-      # Kubeconfig path used by kubectl/TF k8s/helm providers
+      # Used by kubectl / TF k8s & helm providers
       KUBECONFIG: ~/.kube/config
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Log in with SP fields (must exist as repo/env secrets)
       - name: Azure Login (SP)
         uses: azure/login@v1
         with:
@@ -42,9 +43,21 @@ jobs:
           tenant-id:       ${{ secrets.ARM_TENANT_ID }}
           subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
 
+      # Optional (ensures kubectl exists on the runner)
+      - name: Ensure kubectl
+        run: az aks install-cli
+
       - name: Get AKS credentials (writes ~/.kube/config)
+        shell: bash
         run: |
-          az aks get-credentials -g "$AKS_RG" -n "$AKS_NAME" --overwrite-existing
+          # retry a few times just in case the API server is still warming up
+          for i in {1..5}; do
+            if az aks get-credentials -g "$AKS_RG" -n "$AKS_NAME" --overwrite-existing; then
+              break
+            fi
+            echo "get-credentials failed, retrying ($i/5) ..."
+            sleep 10
+          done
           kubectl config current-context || true
           kubectl config view --minify || true
 
@@ -79,9 +92,9 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-      # If you still have pre-existing Azure resources you want TF to manage,
-      # run imports here (uncomment & adjust):
-      # - name: Import existing Azure resources (optional)
+      # If you want Terraform to take over existing resources, uncomment the
+      # imports below and run the workflow once, then comment them again.
+      # - name: Import existing Azure resources (one-time)
       #   run: |
       #     terraform import module.aks.azurerm_kubernetes_cluster.aks \
       #       "/subscriptions/${{ secrets.ARM_SUBSCRIPTION_ID }}/resourceGroups/youtube-aks-rg/providers/Microsoft.ContainerService/managedClusters/youtube-aks"
@@ -100,6 +113,6 @@ jobs:
           TF_VAR_client_secret:   ${{ secrets.ARM_CLIENT_SECRET }}
           TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
           TF_VAR_tenant_id:       ${{ secrets.ARM_TENANT_ID }}
-          # If your TF expects Cloudflare token as variable:
+          # If your TF expects Cloudflare token as a variable, uncomment:
           # TF_VAR_cloudflare_api_token: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: terraform apply -auto-approve
