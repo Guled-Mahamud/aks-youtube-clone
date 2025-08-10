@@ -1,3 +1,23 @@
+name: Terraform Apply Infrastructure
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths: [ 'terraform/**' ]
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  TF_IN_AUTOMATION: "true"
+  # Azure creds (already in your env secrets)
+  ARM_CLIENT_ID:       ${{ secrets.ARM_CLIENT_ID }}
+  ARM_CLIENT_SECRET:   ${{ secrets.ARM_CLIENT_SECRET }}
+  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+  ARM_TENANT_ID:       ${{ secrets.ARM_TENANT_ID }}
+
 jobs:
   apply:
     runs-on: ubuntu-latest
@@ -15,7 +35,7 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # ensure ~/.kube/config exists so k8s/helm providers don’t default to localhost
+      # Ensure ~/.kube/config exists so kubernetes/helm providers do not default to localhost
       - name: Set AKS context (creates kubeconfig)
         uses: azure/aks-set-context@v4
         with:
@@ -36,6 +56,7 @@ jobs:
             terraform/.terraform
           key: tf-${{ runner.os }}-${{ hashFiles('terraform/.terraform.lock.hcl') }}
 
+      # Use your remote backend so CI + local share the same state
       - name: Terraform Init (remote backend)
         env:
           TF_PLUGIN_CACHE_DIR: ~/.terraform.d/plugin-cache
@@ -50,27 +71,26 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-      # ---------- ONE-TIME (idempotent) IMPORTS ----------
+      # ---------- ONE-TIME, SAFE TO KEEP: auto-import existing Azure objects ----------
       - name: Import existing Azure resources into state (idempotent)
         env:
           SUB: ${{ secrets.ARM_SUBSCRIPTION_ID }}
         shell: bash
         run: |
-          set -e
+          set -euo pipefail
 
-          # helper: import only if not already in state
           ensure_import () {
-            ADDR="$1"
-            ID="$2"
-            if terraform state show "$ADDR" >/dev/null 2>&1; then
-              echo "✓ already in state: $ADDR"
+            local addr="$1"
+            local id="$2"
+            if terraform state show "$addr" >/dev/null 2>&1; then
+              echo "✓ already in state: $addr"
             else
-              echo "→ importing: $ADDR"
-              terraform import "$ADDR" "$ID"
+              echo "→ importing: $addr"
+              terraform import "$addr" "$id"
             fi
           }
 
-          # resource group
+          # Resource Group
           ensure_import azurerm_resource_group.rg \
             "/subscriptions/$SUB/resourceGroups/youtube-aks-rg"
 
@@ -78,15 +98,15 @@ jobs:
           ensure_import module.acr.azurerm_container_registry.acr \
             "/subscriptions/$SUB/resourceGroups/youtube-aks-rg/providers/Microsoft.ContainerRegistry/registries/youtubeclone"
 
-          # User-assigned managed identity (UAMI)
+          # User-assigned Managed Identity
           ensure_import module.aks.azurerm_user_assigned_identity.uami \
             "/subscriptions/$SUB/resourceGroups/youtube-aks-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/youtube-aks-uami"
 
-          # Virtual network
+          # VNet
           ensure_import module.network.azurerm_virtual_network.vnet \
             "/subscriptions/$SUB/resourceGroups/youtube-aks-rg/providers/Microsoft.Network/virtualNetworks/youtube-vnet"
 
-          # Subnet (import this too if you created it already)
+          # Subnet (import if it already exists)
           ensure_import module.network.azurerm_subnet.aks_subnet \
             "/subscriptions/$SUB/resourceGroups/youtube-aks-rg/providers/Microsoft.Network/virtualNetworks/youtube-vnet/subnets/aks-subnet"
 
