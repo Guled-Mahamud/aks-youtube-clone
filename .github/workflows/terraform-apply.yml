@@ -34,16 +34,36 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # Create ~/.kube/config so kubernetes/helm providers don't fall back to localhost
+      # 1) Create kubeconfig and capture its path
       - name: Set AKS context (creates kubeconfig)
+        id: aks
         uses: azure/aks-set-context@v4
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
           cluster-name: youtube-aks
           resource-group: youtube-aks-rg
 
+      # 2) Export the exact kubeconfig path from the action output
       - name: Export kubeconfig path
-        run: echo "KUBECONFIG=$HOME/.kube/config" >> $GITHUB_ENV
+        run: echo "KUBECONFIG=${{ steps.aks.outputs.kubeconfig }}" >> $GITHUB_ENV
+
+      # Optional but helpful: install kubectl and wait for API to be ready
+      - name: Install kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Wait for Kubernetes API (up to ~2.5m)
+        shell: bash
+        run: |
+          for i in {1..30}; do
+            if kubectl get ns >/dev/null 2>&1; then
+              echo "Kubernetes API is reachable."
+              exit 0
+            fi
+            echo "Waiting for Kubernetes API..."
+            sleep 5
+          done
+          echo "Kubernetes API was not reachable in time."
+          exit 1
 
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
@@ -72,7 +92,7 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
-      # ---- One-time idempotent imports (safe to keep) ----
+      # Imports are idempotent; safe to keep
       - name: Import existing Azure resources into state
         env:
           SUB: ${{ secrets.ARM_SUBSCRIPTION_ID }}
@@ -89,30 +109,28 @@ jobs:
             fi
           }
 
-          # Resource Group
           ensure_import azurerm_resource_group.rg \
             "/subscriptions/$SUB/resourceGroups/youtube-aks-rg"
 
-          # ACR
           ensure_import module.acr.azurerm_container_registry.acr \
             "/subscriptions/$SUB/resourceGroups/youtube-aks-rg/providers/Microsoft.ContainerRegistry/registries/youtubeclone"
 
-          # UAMI
           ensure_import module.aks.azurerm_user_assigned_identity.uami \
             "/subscriptions/$SUB/resourceGroups/youtube-aks-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/youtube-aks-uami"
 
-          # VNet & Subnet
           ensure_import module.network.azurerm_virtual_network.vnet \
             "/subscriptions/$SUB/resourceGroups/youtube-aks-rg/providers/Microsoft.Network/virtualNetworks/youtube-vnet"
+
           ensure_import module.network.azurerm_subnet.aks_subnet \
             "/subscriptions/$SUB/resourceGroups/youtube-aks-rg/providers/Microsoft.Network/virtualNetworks/youtube-vnet/subnets/aks-subnet"
 
-          # **AKS cluster**
           ensure_import module.aks.azurerm_kubernetes_cluster.aks \
             "/subscriptions/$SUB/resourceGroups/youtube-aks-rg/providers/Microsoft.ContainerService/managedClusters/youtube-aks"
 
+      # 3) Ensure KUBECONFIG is present when Terraform runs
       - name: Terraform Apply
         env:
+          KUBECONFIG: ${{ env.KUBECONFIG }}
           TF_VAR_client_id:       ${{ secrets.ARM_CLIENT_ID }}
           TF_VAR_client_secret:   ${{ secrets.ARM_CLIENT_SECRET }}
           TF_VAR_subscription_id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
