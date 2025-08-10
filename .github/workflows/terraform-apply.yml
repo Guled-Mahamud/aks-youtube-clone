@@ -1,22 +1,3 @@
-name: Terraform Apply Infrastructure
-
-on:
-  workflow_dispatch:
-  push:
-    branches: [ main ]
-    paths:   [ 'terraform/**' ]
-
-permissions:
-  id-token: write
-  contents: read
-
-env:
-  TF_IN_AUTOMATION: "true"
-  ARM_CLIENT_ID:       ${{ secrets.ARM_CLIENT_ID }}
-  ARM_CLIENT_SECRET:   ${{ secrets.ARM_CLIENT_SECRET }}
-  ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
-  ARM_TENANT_ID:       ${{ secrets.ARM_TENANT_ID }}
-
 jobs:
   apply:
     runs-on: ubuntu-latest
@@ -34,7 +15,7 @@ jobs:
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-      # (Optional) create kubeconfig if your providers read ~/.kube/config
+      # ensure ~/.kube/config exists so k8s/helm providers don’t default to localhost
       - name: Set AKS context (creates kubeconfig)
         uses: azure/aks-set-context@v4
         with:
@@ -69,6 +50,47 @@ jobs:
       - name: Terraform Validate
         run: terraform validate
 
+      # ---------- ONE-TIME (idempotent) IMPORTS ----------
+      - name: Import existing Azure resources into state (idempotent)
+        env:
+          SUB: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+        shell: bash
+        run: |
+          set -e
+
+          # helper: import only if not already in state
+          ensure_import () {
+            ADDR="$1"
+            ID="$2"
+            if terraform state show "$ADDR" >/dev/null 2>&1; then
+              echo "✓ already in state: $ADDR"
+            else
+              echo "→ importing: $ADDR"
+              terraform import "$ADDR" "$ID"
+            fi
+          }
+
+          # resource group
+          ensure_import azurerm_resource_group.rg \
+            "/subscriptions/$SUB/resourceGroups/youtube-aks-rg"
+
+          # ACR
+          ensure_import module.acr.azurerm_container_registry.acr \
+            "/subscriptions/$SUB/resourceGroups/youtube-aks-rg/providers/Microsoft.ContainerRegistry/registries/youtubeclone"
+
+          # User-assigned managed identity (UAMI)
+          ensure_import module.aks.azurerm_user_assigned_identity.uami \
+            "/subscriptions/$SUB/resourceGroups/youtube-aks-rg/providers/Microsoft.ManagedIdentity/userAssignedIdentities/youtube-aks-uami"
+
+          # Virtual network
+          ensure_import module.network.azurerm_virtual_network.vnet \
+            "/subscriptions/$SUB/resourceGroups/youtube-aks-rg/providers/Microsoft.Network/virtualNetworks/youtube-vnet"
+
+          # Subnet (import this too if you created it already)
+          ensure_import module.network.azurerm_subnet.aks_subnet \
+            "/subscriptions/$SUB/resourceGroups/youtube-aks-rg/providers/Microsoft.Network/virtualNetworks/youtube-vnet/subnets/aks-subnet"
+
+      # ---------- APPLY ----------
       - name: Terraform Apply
         env:
           TF_VAR_client_id:       ${{ secrets.ARM_CLIENT_ID }}
