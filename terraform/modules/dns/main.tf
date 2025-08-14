@@ -1,4 +1,3 @@
-# modules/externaldns/main.tf
 
 resource "kubernetes_namespace" "external_dns" {
   metadata {
