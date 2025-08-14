@@ -12,7 +12,7 @@ Traffic is routed through the **NGINX Ingress Controller**, which provides secur
 
 ---
 
-## **Architecture Diagram**
+## :memo:**Architecture Diagram**
 
 
 ## **🎥Youtube Clone Demo**
@@ -23,7 +23,7 @@ Traffic is routed through the **NGINX Ingress Controller**, which provides secur
 
 ---
 
-**Key Components**
+## :black_circle: **Key Components**
 
 | Component | What it Does |
 | --- | --- |
@@ -44,7 +44,7 @@ Traffic is routed through the **NGINX Ingress Controller**, which provides secur
 
 ---
 
-## **Project Structure**
+## :arrow_up_down: **Project Structure**
 
 ```
 ├── .github/
@@ -82,7 +82,7 @@ Traffic is routed through the **NGINX Ingress Controller**, which provides secur
 ---
 
 
-## Azure Deployment Workflow
+## :large_blue_circle: Azure Deployment Workflow
 
 
 This project takes the **YouTube-clone app** from code to production on Azure using a GitOps-driven workflow with **AKS**, **Terraform**, and **GitHub Actions**. Here’s how it all comes together:
@@ -150,7 +150,7 @@ ArgoCD keeps the AKS cluster in sync with the Kubernetes manifests in `k8s-manif
 ---
 
 
-## ArgoCD: GitOps Deployment to AKS
+## :black_circle: ArgoCD: GitOps Deployment to AKS
 
 The YouTube-clone app is deployed to AKS via **ArgoCD**, which syncs the cluster with the Kubernetes manifests in k8s-manifests/ so it always matches the Git source of truth.
 
