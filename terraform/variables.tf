@@ -41,5 +41,4 @@ variable "env" {
 variable "cloudflare_api_token" {
   description = "Cloudflare API Token for DNS-01 challenge"
   type        = string
-  default     = "jwIKa24pduySoGH4APFChFdsWoRlB3vITVp8D31a"
 }
