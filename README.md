@@ -14,6 +14,7 @@ Traffic is routed through the **NGINX Ingress Controller**, which provides secur
 
 ## :memo:**Architecture Diagram**
 
+ ![AD](https://github.com/Guled-Mahamud/aks-youtube-clone/blob/main/docs/AD.png)
 
 ## **🎥Youtube Clone Demo**
 
@@ -23,7 +24,7 @@ Traffic is routed through the **NGINX Ingress Controller**, which provides secur
 
 ---
 
-## :black_circle: **Key Components**
+## :key:**Key Components**
 
 | Component | What it Does |
 | --- | --- |
@@ -158,15 +159,15 @@ The YouTube-clone app is deployed to AKS via **ArgoCD**, which syncs the cluster
 
 
 
-## Prometheus & Grafana:
+## :chart_with_upwards_trend:Prometheus & Grafana
 
  **Prometheus** collects metrics from AKS and workloads, while **Grafana** turns them into real-time dashboards and alerts for cluster and app health.
 
- ### Prometheus Dashboard:
+ #### Prometheus Dashboard:
 
 ![prom](https://github.com/Guled-Mahamud/aks-youtube-clone/blob/main/docs/monitor.png)
 
- ### Grafana Dashboard:
+ #### Grafana Dashboard:
 
 
  ![grafana1](https://github.com/Guled-Mahamud/aks-youtube-clone/blob/main/docs/grafana2.png)
@@ -178,7 +179,7 @@ The YouTube-clone app is deployed to AKS via **ArgoCD**, which syncs the cluster
 ---
 
 
-## Cloudflare DNS Setup
+## :newspaper: Cloudflare DNS Setup
 
 The YouTube-clone platform and its monitoring tools are all reachable via custom subdomains managed in **Cloudflare**.
 
