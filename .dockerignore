@@ -10,7 +10,7 @@ dist/
 *.log
 *.pid
 *.tar
-docker-compose.override.yml
+
 
 # Terraform
 .terraform/
