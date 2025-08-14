@@ -82,36 +82,7 @@ Traffic is routed through the **NGINX Ingress Controller**, which provides secur
 
 ---
 
-**Running the YouTube-Clone App Locally**
 
-If you want to develop or test the YouTube-clone app on your local machine, follow these steps:
-
-1. Go to the app folder:
-    
-    ```bash
-    cd app
-    
-    ```
-    
-2. Install the required dependencies:
-    
-    ```bash
-    npm install
-    
-    ```
-    
-3. Start the development server:
-    
-    ```bash
-    npm run dev
-    
-    ```
-    
-4. Open your browser and visit [**http://localhost:3000**](http://localhost:3000/) (or the port shown in your terminal) to view the app.
-
-
-
----
 
 ## :large_blue_circle: Azure Deployment Workflow
 
