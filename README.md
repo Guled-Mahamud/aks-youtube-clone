@@ -136,7 +136,7 @@ Whenever code is pushed to the **main** branch, the `push-docker-image.yml` work
 
 ---
 
-### 3. Validating Infrastructure Changes (Pull Requests)
+### 3. Validating Infrastructure Changes 
 
 If a pull request changes Terraform files, the `terraform-plan.yml` workflow runs automatically:
 
@@ -146,7 +146,7 @@ If a pull request changes Terraform files, the `terraform-plan.yml` workflow run
 
 ---
 
-### 4. Provisioning Infrastructure (Merge to Main)
+### 4. Provisioning Infrastructure 
 
 When changes are approved and merged, the `terraform-apply.yml` workflow updates or creates all required Azure resources with Terraform:
 
