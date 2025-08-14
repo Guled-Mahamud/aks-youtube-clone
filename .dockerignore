@@ -1,29 +1,17 @@
-# Node.js
-node_modules/
-dist/
-.env
-
-# Vite
-.vite/
-
-# Docker
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
 *.log
-*.pid
-*.tar
-
-
-# Terraform
-.terraform/
-*.tfstate
-*.tfstate.*
-crash.log
-terraform.tfvars
-override.tf
-override.tf.json
-.terraform.lock.hcl
-
-# VSCode
+.env
+.venv
 .vscode/
-
-# Ignore backend config
-backend.config
+.git/
+.gitignore
+Dockerfile
+.dockerignore
+terraform/
+*.tfstate*
+certs/
