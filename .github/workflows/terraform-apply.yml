@@ -3,8 +3,8 @@ name: Terraform Apply Infrastructure
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
-    paths:   [ 'terraform/**' ]
+    branches:
+      - main
 
 permissions:
   id-token: write

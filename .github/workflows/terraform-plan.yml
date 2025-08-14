@@ -3,8 +3,8 @@ name: Terraform Plan & Security Checks
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
-    paths:   [ 'terraform/**' ]
+    branches:
+      - main
 
 permissions:
   contents: read
